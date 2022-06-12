@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MeChat</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css"
+    />
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row bg-light">
+        <div class="col-sm-3">
+          <h3 class="text-center text-secondary">MeChat</h3>
+        </div>
+        <div class="col-sm-6">
+          <h3 class="text-center text-primary">Chat History</h3>
+        </div>
+        <!-- <div class="col-sm-3">
+                Right Bar
+            </div> -->
+      </div>
+      <div class="row">
+        <div class="col-sm-3">
+          <div class="list-group" id="friendList">
+            <!-- <a href="#" class="list-group-item list-group-item-action active">
+              <h5 class="list-group-item-heading">Kunal</h5>
+            </a>
+            <a href="#" class="list-group-item list-group-item-action">
+              <h5 class="list-group-item-heading">Mangal</h5>
+            </a> -->
+            <!-- <a href="#" class="list-group-item list-group-item-action">
+              <h5 class="list-group-item-heading">Chat Room</h5>
+            </a> -->
+          </div>
+        </div>
+        <div class="col-sm-6 h-100 bg-light">
+          <!--chat box-->
+          <form>
+            <div id="chat" class="list-group">
+              <div id="chatDiv" style="height: 80vh; overflow-y: auto">
+                <h4 class="text-center">
+                  No Chat History. Select a friend to start chatting.
+                </h4>
+              </div>
+            </div>
+
+            <div class="row">
+              <input type="text" id="chatInput" style="flex:80%"/>
+              <button class="btn btn-primary" id="sendButton" style="flex:20%" type="submit">
+                Send
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="col-sm-3">
+          <div class="list-group" id="onlineFriend">
+            <!-- <a href="#" class="list-group-item list-group-item-action active">
+              <h5 class="list-group-item-heading">Kunal</h5>
+            </a>
+            <a href="#" class="list-group-item list-group-item-action">
+              <h5 class="list-group-item-heading">Mangal</h5>
+            </a> -->
+            <!-- <a href="#" class="list-group-item list-group-item-action">
+              <h5 class="list-group-item-heading">Chat Room</h5>
+            </a> -->
+          </div>
+      </div>
+    </div>
+  </body>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const submitButton = document.querySelector("#sendButton");
+    const chatInput = document.querySelector("#chatInput");
+    let currentUser = "Kunal";
+    const chatDiv = document.querySelector("#chatDiv");
+    const friendList = document.querySelector("#friendList");
+    const onlineFriend = document.querySelector("#onlineFriend");
+    const changeUser = () => {
+      var abc = friendList.children;
+      for (let i = 0; i < abc.length; i++) {
+        abc[i].addEventListener("click", () => {
+          currentUser = abc[i].innerText;
+          console.log(currentUser);
+
+          userChange(currentUser);
+          for (let j = 0; j < abc.length; j++) {
+            // console.log(abc[j])
+            abc[j].classList.remove("active");
+          }
+          abc[i].classList.add("active");
+        });
+      }
+    };
+
+    // console.log(abc[0])
+
+    const userList = ["Kunal", "Mangal", "Buddha", "Biplab"];
+    const socket = io();
+    let self = "";
+    while (true) {
+      const name = prompt("Enter Your userName : ");
+      if (name !== null) {
+        socket.emit("addUser", {
+          name: name,
+        });
+        socket.on("onlineFriend",(friends)=>{
+          onlineFriend.innerHTML = "";
+          onlineFriend.insertAdjacentHTML("beforeend",
+            `<a href="" class="text-center text-primary">Online Friends</a>`
+            )
+         friends.map(friend=>{
+          if(friend.name!==name){
+            onlineFriend.insertAdjacentHTML("beforeend",
+            `<a href="#" class="list-group-item 
+            onclick="userChange('${friend.name}')"
+            list-group-item-action">
+              <h6 class="list-group-item-heading text-success">${friend.name}</h6>
+            </a>`);
+           
+          }
+         })
+         console.log(friends)
+        })
+        userList.map((user) => {
+          if (user !== name) {
+            friendList.insertAdjacentHTML(
+              "afterbegin",
+              `<a href="#" class="list-group-item list-group-item-action "> ${user}</a>`
+            );
+          }
+        });
+        self = name;
+        changeUser();
+        break;
+      }
+    }
+
+
+
+    const addMeaageToChatBox=(chats)=>{
+      if (chats.sender == currentUser) {
+            chatDiv.insertAdjacentHTML(
+              "beforeend",
+              `
+              <div class=" list-group-item-primary 
+               text-left rounded-pill p-2 mb-2"> 
+              ${chats.message}
+              <br/>
+               <span class="text-muted small text-right">${chats.timeAgo}</span>
+               </div>
+              `
+            );
+          }else{
+            chatDiv.insertAdjacentHTML(
+              "beforeend",
+              `
+              <div class=" list-group-item-secondary 
+               text-right p-2 mb-2 rounded-pill p-1 ml-2"> 
+              ${chats.message}
+              <br/>
+               <span class="text-muted small text-left">${chats.timeAgo}</span>
+               </div>
+              `
+              );
+          }
+    }
+    socket.on("basic_emit", (msg) => {
+      console.log(msg);
+    });
+    socket.on("basic_broadcast", (msg) => {
+      console.log(msg);
+    });
+
+    // socket.emit("addUser", {
+    //   name: "Jhon",
+    // });
+
+    submitButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      socket.emit("sendMessage", {
+        message: chatInput.value,
+        to: currentUser,
+      });
+      chatInput.value = "";
+    });
+    socket.on("sendMessage", (data) => {
+     addMeaageToChatBox(data)
+    });
+    socket.on("receiveMessage", (msg) => {
+      addMeaageToChatBox(msg)
+    });
+    const userChange = (userName) => {
+      socket.emit("userChange", {
+        name: userName,
+      });
+    };
+
+    socket.on("receiveChats", (chats) => {
+      chatDiv.innerHTML = "";
+      console.log(chats);
+      if (chats.length > 0) {
+        for (let i = 0; i < chats.length; i++) {
+          addMeaageToChatBox(chats[i]);
+        }
+      } else {
+        chatDiv.insertAdjacentHTML(
+          "beforeend",
+          `<p class=" list-group-item-secondary  rounded-pill p-1"> No Chat History. Select a friend to start chatting. </p>`
+        );
+      }
+    });
+  </script>
+</html>
